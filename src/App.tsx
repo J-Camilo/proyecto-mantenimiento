@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import "../styles/global.css"
+import "../src/styles/global.css"
 import TaskForm from "./components/TaskForm"
 import PriorityFilter from "./components/PriorityFilter"
 import TaskList from "./components/TaskList"
