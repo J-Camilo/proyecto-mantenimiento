@@ -49,6 +49,10 @@ export default function Page() {
     setTasks([...tasks, newTask])
   }
 
+  const updateTask = (id: number, title: string, description: string, priority: "low" | "medium" | "high") => {
+    setTasks(tasks.map((task) => (task.id === id ? { ...task, title, description, priority } : task)))
+  }
+
   const toggleTaskCompletion = (id: number) => {
     setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)))
   }
@@ -72,7 +76,12 @@ export default function Page() {
 
         <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
 
-        <TaskList tasks={filteredTasks} onToggleCompletion={toggleTaskCompletion} onDeleteTask={deleteTask} />
+        <TaskList
+          tasks={filteredTasks}
+          onToggleCompletion={toggleTaskCompletion}
+          onDeleteTask={deleteTask}
+          onUpdateTask={updateTask}
+        />
       </main>
 
       <footer>
