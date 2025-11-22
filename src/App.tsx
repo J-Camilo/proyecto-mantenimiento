@@ -1,8 +1,9 @@
 "use client"
 
-import "../src/styles/global.css"
 import { useState } from "react"
+import "../styles/global.css"
 import TaskForm from "./components/TaskForm"
+import PriorityFilter from "./components/PriorityFilter"
 import TaskList from "./components/TaskList"
 
 interface Task {
@@ -34,6 +35,8 @@ export default function Page() {
     },
   ])
 
+  const [activePriorityFilter, setActivePriorityFilter] = useState<"all" | "high" | "medium" | "low">("all")
+
   const addTask = (title: string, description: string, priority: "low" | "medium" | "high") => {
     const newTask: Task = {
       id: Date.now(),
@@ -53,7 +56,10 @@ export default function Page() {
   const deleteTask = (id: number) => {
     setTasks(tasks.filter((task) => task.id !== id))
   }
- 
+
+  const filteredTasks =
+    activePriorityFilter === "all" ? tasks : tasks.filter((task) => task.priority === activePriorityFilter)
+
   return (
     <div className="container">
       <header>
@@ -63,11 +69,14 @@ export default function Page() {
 
       <main>
         <TaskForm onAddTask={addTask} />
-        <TaskList tasks={tasks} onToggleCompletion={toggleTaskCompletion} onDeleteTask={deleteTask} />
+
+        <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
+
+        <TaskList tasks={filteredTasks} onToggleCompletion={toggleTaskCompletion} onDeleteTask={deleteTask} />
       </main>
 
       <footer>
-        <p>&copy; {new Date().getFullYear()} - Todos los derechos reservados a Juan Camilo Fong Leon - Proyecto de Mantenimiento de Software </p>
+        <p>&copy; {new Date().getFullYear()} - Proyecto de Mantenimiento de Software</p>
       </footer>
     </div>
   )

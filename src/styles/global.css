@@ -1,7 +1,7 @@
 :root {
-  --primary-color: #63f16869;
+  --primary-color: #6366f1;
   --primary-dark: #4f46e5;
-  --secondary-color: #002aff86;
+  --secondary-color: #8b5cf6;
   --success-color: #10b981;
   --danger-color: #ef4444;
   --warning-color: #f59e0b;
@@ -36,7 +36,7 @@ body {
 }
 
 .container {
-  min-width: 900px;
+  max-width: 900px;
   margin: 0 auto;
 }
 
@@ -176,6 +176,63 @@ textarea {
   border-left: 4px solid var(--danger-color);
   font-size: 0.9rem;
   animation: slideIn 0.3s ease-out;
+}
+
+/* PRIORITY FILTER SECTION */
+.priority-filter {
+  background: var(--surface);
+  border-radius: 16px;
+  box-shadow: var(--shadow-md);
+  padding: 25px;
+  border: 1px solid var(--border-color);
+  transition: var(--transition);
+}
+
+.priority-filter h3 {
+  font-size: 1.1rem;
+  margin-bottom: 18px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: 10px 18px;
+  border: 2px solid var(--border-color);
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--surface);
+  color: var(--text-primary);
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.filter-btn:hover {
+  background: var(--background);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.filter-btn.active {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+}
+
+.filter-btn.active:hover {
+  box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
 }
 
 /* BUTTONS */
@@ -413,7 +470,8 @@ footer {
   }
 
   .task-form,
-  .task-list {
+  .task-list,
+  .priority-filter {
     padding: 20px;
   }
 
@@ -433,5 +491,14 @@ footer {
 
   .btn-small {
     flex: 1;
+  }
+
+  .filter-buttons {
+    gap: 8px;
+  }
+
+  .filter-btn {
+    flex: 1;
+    min-width: calc(50% - 4px);
   }
 }
