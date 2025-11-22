@@ -53,7 +53,7 @@ export default function Page() {
   const deleteTask = (id: number) => {
     setTasks(tasks.filter((task) => task.id !== id))
   }
-
+ 
   return (
     <div className="container">
       <header>
