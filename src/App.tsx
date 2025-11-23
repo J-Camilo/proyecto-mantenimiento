@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, ChangeEvent } from "react"
 import type { Task } from "../src/types"
 import "../src/styles/global.css"
 import Dashboard from "./components/Dashboard"
@@ -9,21 +9,35 @@ import PriorityFilter from "./components/PriorityFilter"
 import SortSelector from "./components/SortSelector"
 import TaskList from "./components/TaskList"
 import PixelBlast from "./animations/PixelBlast"
+import Onboarding from "./components/Onboarding"
 
 export default function Page() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activePriorityFilter, setActivePriorityFilter] = useState<"all" | "high" | "medium" | "low">("all")
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "priority">("recent")
+  const [user, setUser] = useState<{ name: string; ip: string } | null>(null)
+  const [isCheckingUser, setIsCheckingUser] = useState(true)
+
+  const getDefaultTasks = (): Task[] => [
+    {
+      id: 1,
+      title: "Tarea de ejemplo 1",
+      description: "descripción de la tarea de ejemplo 1",
+      completed: false,
+      priority: "low",
+      createdAt: new Date(),
+    },
+  ]
 
   useEffect(() => {
     const savedTasks = localStorage.getItem("tasks")
     if (savedTasks) {
       try {
-        const parsedTasks = JSON.parse(savedTasks) as Task[]
-        setTasks(parsedTasks)
-      } catch (error) {
-        console.error("Error al cargar tareas del localStorage:", error)
+        const parsed = JSON.parse(savedTasks)
+        setTasks(parsed)
+      } catch (e) {
+        console.error("Error en localStorage:", e)
         setTasks(getDefaultTasks())
       }
     } else {
@@ -38,70 +52,158 @@ export default function Page() {
     }
   }, [tasks, isLoading])
 
-  const getDefaultTasks = (): Task[] => [
-    {
-      id: 1,
-      title: "Tarea de ejemplo 1",
-      description: "descripción de la tarea de ejemplo 1",
-      completed: false,
-      priority: "low",
-      createdAt: new Date(),
-    },
-  ]
+  useEffect(() => {
+    async function verifyUser() {
+      const savedUser = localStorage.getItem("user")
+      const currentIP = await fetch("https://api.ipify.org?format=json")
+        .then(r => r.json())
+        .then(d => d.ip)
+
+      if (savedUser) {
+        const parsed = JSON.parse(savedUser)
+        if (parsed.ip === currentIP) {
+          setUser(parsed)
+        }
+      }
+
+      setIsCheckingUser(false)
+    }
+
+    verifyUser()
+  }, [])
+
+  const handleFinishOnboarding = (userData: { name: string; ip: string }) => {
+    setUser(userData)
+  }
+
+  const exportData = () => {
+    const data = {
+      user,
+      tasks,
+      exportedAt: new Date().toISOString()
+    }
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "backup.json"
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  const importData = (e: ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".json")) {
+      alert("❌ Solo se permiten archivos .json");
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+
+        if (
+          typeof parsed !== "object" ||
+          !parsed.user ||
+          !parsed.tasks ||
+          !Array.isArray(parsed.tasks) ||
+          !parsed.exportedAt
+        ) {
+          throw new Error("Estructura inválida");
+        }
+
+        if (
+          typeof parsed.user.name !== "string" ||
+          typeof parsed.user.ip !== "string"
+        ) {
+          throw new Error("Datos del usuario incorrectos");
+        }
+
+        const validTasks: Task[] = parsed.tasks.map((t: any) => {
+          if (
+            typeof t.id !== "number" ||
+            typeof t.title !== "string" ||
+            typeof t.description !== "string" ||
+            typeof t.completed !== "boolean" ||
+            !["low", "medium", "high"].includes(t.priority) ||
+            !t.createdAt
+          ) {
+            throw new Error("Tarea con estructura inválida");
+          }
+
+          return {
+            ...t,
+            createdAt: new Date(t.createdAt),
+          };
+        });
+
+        if (!parsed.exportedAt || isNaN(new Date(parsed.exportedAt).getTime())) {
+          throw new Error("Fecha de exportación inválida");
+        }
+
+        setTasks(validTasks);
+        localStorage.setItem("tasks", JSON.stringify(validTasks));
+
+        setUser(parsed.user);
+        localStorage.setItem("user", JSON.stringify(parsed.user));
+
+        alert("✅ Datos importados correctamente 🎉");
+      } catch (err) {
+        console.error(err);
+        alert("❌ Archivo inválido o estructura incorrecta.");
+      }
+    };
+
+    reader.readAsText(file);
+  };
+
+  if (isCheckingUser) return <div>Cargando...</div>
+
+  if (!user) return <Onboarding onFinish={handleFinishOnboarding} />
 
   const addTask = (title: string, description: string, priority: "low" | "medium" | "high") => {
-    const newTask: Task = {
-      id: Date.now(),
-      title,
-      description,
-      completed: false,
-      priority,
-      createdAt: new Date(),
-    }
-    setTasks([...tasks, newTask])
+    setTasks([
+      ...tasks,
+      {
+        id: Date.now(),
+        title,
+        description,
+        completed: false,
+        priority,
+        createdAt: new Date(),
+      }
+    ])
   }
 
   const updateTask = (id: number, title: string, description: string, priority: "low" | "medium" | "high") => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, title, description, priority } : task)))
+    setTasks(tasks.map(t => t.id === id ? { ...t, title, description, priority } : t))
   }
 
   const toggleTaskCompletion = (id: number) => {
-    setTasks(tasks.map((task) => (task.id === id ? { ...task, completed: !task.completed } : task)))
+    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
   }
 
   const deleteTask = (id: number) => {
-    setTasks(tasks.filter((task) => task.id !== id))
+    setTasks(tasks.filter(t => t.id !== id))
   }
 
   const filteredTasks =
-    activePriorityFilter === "all" ? tasks : tasks.filter((task) => task.priority === activePriorityFilter)
+    activePriorityFilter === "all"
+      ? tasks
+      : tasks.filter(task => task.priority === activePriorityFilter)
 
   const sortedAndFilteredTasks = [...filteredTasks].sort((a, b) => {
-    switch (sortBy) {
-      case "recent":
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      case "oldest":
-        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-      case "priority":
-        const priorityOrder = { high: 0, medium: 1, low: 2 }
-        return priorityOrder[a.priority] - priorityOrder[b.priority]
-      default:
-        return 0
-    }
-  })
+    if (sortBy === "recent") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    if (sortBy === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
 
-  if (isLoading) {
-    return (
-      <div className="container">
-        <header>
-          <h1>Mi Lista de Tareas</h1>
-        </header>
-        <main>
-          <p style={{ textAlign: "center", padding: "2rem" }}>Cargando tareas...</p>
-        </main>
-      </div>
-    )
-  }
+    const order = { high: 0, medium: 1, low: 2 }
+    return order[a.priority] - order[b.priority]
+  })
 
   return (
     <>
@@ -126,14 +228,27 @@ export default function Page() {
           transparent
         />
       </div>
+
       <div className="container">
         <header>
           <h1>Mi Lista de Tareas</h1>
+          <p>Bienvenido, {user?.name}</p>
+
+          <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "center" }}>
+
+            <button className="btn-premium " onClick={exportData}>
+              Exportar datos
+            </button>
+
+            <label className="btn-premium file-btn">
+              Importar datos
+              <input type="file" onChange={importData} accept=".json" />
+            </label>
+          </div>
         </header>
 
         <main>
           <Dashboard tasks={tasks} />
-
           <TaskForm onAddTask={addTask} />
 
           <div className="filter-sort-container">
@@ -150,7 +265,7 @@ export default function Page() {
         </main>
 
         <footer>
-          <p>&copy; {new Date().getFullYear()} - Todos los derechos reservados a Juan Camilo Fong Leon para libre uso</p>
+          <p>&copy; {new Date().getFullYear()} - Todos los derechos reservados a Juan Camilo Fong Leon</p>
         </footer>
       </div>
     </>
