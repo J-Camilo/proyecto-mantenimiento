@@ -24,6 +24,8 @@ export default function Page() {
 
   useEffect(() => {
     const saved = localStorage.getItem("viewMode")
+    const tema = localStorage.getItem("theme");
+    if (tema === "dark") document.documentElement.classList.add("dark");
     if (saved === "kanban" || saved === "list") {
       setViewMode(saved)
     }
@@ -201,8 +203,20 @@ export default function Page() {
   }
 
   const toggleTaskCompletion = (id: number) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, completed: !t.completed } : t))
-  }
+    setTasks(prev =>
+      prev.map(task => {
+        if (task.id !== id) return task;
+
+        const newCompleted = !task.completed;
+
+        return {
+          ...task,
+          completed: newCompleted,
+          status: newCompleted ? "done" : "todo"
+        };
+      })
+    );
+  };
 
   const deleteTask = (id: number) => {
     setTasks(tasks.filter(t => t.id !== id))
@@ -245,6 +259,10 @@ export default function Page() {
     ));
   };
 
+  const toggleTheme = () => {
+    const isDark = document.documentElement.classList.toggle("dark");
+    localStorage.setItem("theme", isDark ? "dark" : "light");
+  };
 
   return (
     <>
@@ -278,7 +296,11 @@ export default function Page() {
 
           <div style={{ display: "flex", gap: "12px", marginTop: "20px", justifyContent: "center" }}>
 
-            <button className="btn-premium " onClick={exportData}>
+            <button className="btn-premium" onClick={toggleTheme}>
+              Cambiar tema
+            </button>
+
+            <button className="btn-premium" onClick={exportData}>
               Exportar datos
             </button>
 
@@ -292,8 +314,6 @@ export default function Page() {
         <main>
           <Dashboard tasks={tasks} />
           <TaskForm onAddTask={addTask} />
-
-
 
           <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: 20 }}>
             <button
