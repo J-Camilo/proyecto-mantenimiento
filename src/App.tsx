@@ -1,24 +1,20 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState, useEffect } from "react"
+import type { Task } from "../src/types"
 import "../src/styles/global.css"
+import Dashboard from "./components/Dashboard"
 import TaskForm from "./components/TaskForm"
 import PriorityFilter from "./components/PriorityFilter"
+import SortSelector from "./components/SortSelector"
 import TaskList from "./components/TaskList"
-
-interface Task {
-  id: number
-  title: string
-  description: string
-  completed: boolean
-  priority: "low" | "medium" | "high"
-  createdAt: Date
-}
+import PixelBlast from "./animations/PixelBlast"
 
 export default function Page() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [activePriorityFilter, setActivePriorityFilter] = useState<"all" | "high" | "medium" | "low">("all")
+  const [sortBy, setSortBy] = useState<"recent" | "oldest" | "priority">("recent")
 
   useEffect(() => {
     const savedTasks = localStorage.getItem("tasks")
@@ -45,18 +41,10 @@ export default function Page() {
   const getDefaultTasks = (): Task[] => [
     {
       id: 1,
-      title: "Implementar historias de usuario",
-      description: "Crear y subir a GitHub las 5 historias de usuario",
+      title: "Tarea de ejemplo 1",
+      description: "descripción de la tarea de ejemplo 1",
       completed: false,
-      priority: "high",
-      createdAt: new Date(),
-    },
-    {
-      id: 2,
-      title: "Configurar entorno de desarrollo",
-      description: "Instalar Git y configurar GitHub",
-      completed: true,
-      priority: "medium",
+      priority: "low",
       createdAt: new Date(),
     },
   ]
@@ -88,6 +76,20 @@ export default function Page() {
   const filteredTasks =
     activePriorityFilter === "all" ? tasks : tasks.filter((task) => task.priority === activePriorityFilter)
 
+  const sortedAndFilteredTasks = [...filteredTasks].sort((a, b) => {
+    switch (sortBy) {
+      case "recent":
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      case "oldest":
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+      case "priority":
+        const priorityOrder = { high: 0, medium: 1, low: 2 }
+        return priorityOrder[a.priority] - priorityOrder[b.priority]
+      default:
+        return 0
+    }
+  })
+
   if (isLoading) {
     return (
       <div className="container">
@@ -102,28 +104,55 @@ export default function Page() {
   }
 
   return (
-    <div className="container">
-      <header>
-        <h1>Mi Lista de Tareas</h1>
-        <p>Proyecto para la actividad de control de versiones en GitHub</p>
-      </header>
-
-      <main>
-        <TaskForm onAddTask={addTask} />
-
-        <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
-
-        <TaskList
-          tasks={filteredTasks}
-          onToggleCompletion={toggleTaskCompletion}
-          onDeleteTask={deleteTask}
-          onUpdateTask={updateTask}
+    <>
+      <div style={{ width: '100%', height: '100vh', position: 'absolute', top: 0, left: 0, zIndex: -1, overflow: 'hidden' }}>
+        <PixelBlast
+          variant="circle"
+          pixelSize={6}
+          color="#1cca87"
+          patternScale={3}
+          patternDensity={1.2}
+          pixelSizeJitter={0.5}
+          enableRipples
+          rippleSpeed={0.4}
+          rippleThickness={0.12}
+          rippleIntensityScale={1.5}
+          liquid={false}
+          liquidStrength={0.12}
+          liquidRadius={1.2}
+          liquidWobbleSpeed={5}
+          speed={0.6}
+          edgeFade={0.25}
+          transparent
         />
-      </main>
+      </div>
+      <div className="container">
+        <header>
+          <h1>Mi Lista de Tareas</h1>
+        </header>
 
-      <footer>
-        <p>&copy; {new Date().getFullYear()} - Proyecto de Mantenimiento de Software</p>
-      </footer>
-    </div>
+        <main>
+          <Dashboard tasks={tasks} />
+
+          <TaskForm onAddTask={addTask} />
+
+          <div className="filter-sort-container">
+            <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
+            <SortSelector sortBy={sortBy} onSortChange={setSortBy} />
+          </div>
+
+          <TaskList
+            tasks={sortedAndFilteredTasks}
+            onToggleCompletion={toggleTaskCompletion}
+            onDeleteTask={deleteTask}
+            onUpdateTask={updateTask}
+          />
+        </main>
+
+        <footer>
+          <p>&copy; {new Date().getFullYear()} - Todos los derechos reservados a Juan Camilo Fong Leon para libre uso</p>
+        </footer>
+      </div>
+    </>
   )
 }

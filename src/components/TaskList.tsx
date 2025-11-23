@@ -71,7 +71,7 @@ const TaskList: React.FC<TaskListProps> = ({ tasks, onToggleCompletion, onDelete
                 <p>{task.description}</p>
 
                 <div className="task-meta">
-                  <small>📅 Creada: {task.createdAt.toLocaleDateString("es-ES")}</small>
+               <small>📅 Creada: {new Date(task.createdAt).toLocaleDateString("es-ES")}</small>
                   <div className="task-actions">
                     <button onClick={() => openEditModal(task)} className="btn btn-small btn-edit">
                       ✏ Editar
