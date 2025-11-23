@@ -5,4 +5,5 @@ export interface Task {
   completed: boolean;
   priority: 'low' | 'medium' | 'high';
   createdAt: Date;
+  status: "todo" | "process" | "done";
 }

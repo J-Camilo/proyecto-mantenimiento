@@ -10,6 +10,7 @@ import SortSelector from "./components/SortSelector"
 import TaskList from "./components/TaskList"
 import PixelBlast from "./animations/PixelBlast"
 import Onboarding from "./components/Onboarding"
+import KanbanBoard from "./components/KanbanBoard"
 
 export default function Page() {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -18,6 +19,19 @@ export default function Page() {
   const [sortBy, setSortBy] = useState<"recent" | "oldest" | "priority">("recent")
   const [user, setUser] = useState<{ name: string; ip: string } | null>(null)
   const [isCheckingUser, setIsCheckingUser] = useState(true)
+  const [viewMode, setViewMode] = useState<"list" | "kanban">("list")
+  const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    const saved = localStorage.getItem("viewMode")
+    if (saved === "kanban" || saved === "list") {
+      setViewMode(saved)
+    }
+  }, [])
+
+  useEffect(() => {
+    localStorage.setItem("viewMode", viewMode)
+  }, [viewMode])
 
   const getDefaultTasks = (): Task[] => [
     {
@@ -27,6 +41,7 @@ export default function Page() {
       completed: false,
       priority: "low",
       createdAt: new Date(),
+      status: "process",
     },
   ]
 
@@ -176,6 +191,7 @@ export default function Page() {
         completed: false,
         priority,
         createdAt: new Date(),
+        status: "todo",
       }
     ])
   }
@@ -192,18 +208,43 @@ export default function Page() {
     setTasks(tasks.filter(t => t.id !== id))
   }
 
-  const filteredTasks =
+  const filteredByPriority =
     activePriorityFilter === "all"
       ? tasks
       : tasks.filter(task => task.priority === activePriorityFilter)
 
-  const sortedAndFilteredTasks = [...filteredTasks].sort((a, b) => {
-    if (sortBy === "recent") return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    if (sortBy === "oldest") return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  const filteredBySearch = searchTerm.trim() === ""
+    ? filteredByPriority
+    : filteredByPriority.filter(task =>
+      task.title.toLowerCase().includes(searchTerm.trim().toLowerCase())
+    )
 
-    const order = { high: 0, medium: 1, low: 2 }
+  const sortedAndFilteredTasks = [...filteredBySearch].sort((a, b) => {
+    const timeA = new Date(a.createdAt).getTime()
+    const timeB = new Date(b.createdAt).getTime()
+
+    if (sortBy === "recent") return timeB - timeA
+    if (sortBy === "oldest") return timeA - timeB
+
+    const order: Record<string, number> = { high: 0, medium: 1, low: 2 }
     return order[a.priority] - order[b.priority]
   })
+
+  const moveTaskToStatus = (
+    id: number,
+    newStatus: "todo" | "process" | "done"
+  ) => {
+    setTasks(tasks.map(task =>
+      task.id === id
+        ? {
+          ...task,
+          status: newStatus,
+          completed: newStatus === "done"
+        }
+        : task
+    ));
+  };
+
 
   return (
     <>
@@ -230,6 +271,7 @@ export default function Page() {
       </div>
 
       <div className="container">
+        <div className="Anuncios"><p>Proxima actualización conexion a azure devOps</p></div>
         <header>
           <h1>Mi Lista de Tareas</h1>
           <p>Bienvenido, {user?.name}</p>
@@ -251,17 +293,49 @@ export default function Page() {
           <Dashboard tasks={tasks} />
           <TaskForm onAddTask={addTask} />
 
-          <div className="filter-sort-container">
-            <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
-            <SortSelector sortBy={sortBy} onSortChange={setSortBy} />
+
+
+          <div style={{ display: "flex", gap: "10px", justifyContent: "center", marginBottom: 20 }}>
+            <button
+              className={`btn-premium ${viewMode === "list" ? "active" : ""}`}
+              onClick={() => setViewMode("list")}
+            >
+              📋 Vista Lista
+            </button>
+
+            <button
+              className={`btn-premium ${viewMode === "kanban" ? "active" : ""}`}
+              onClick={() => setViewMode("kanban")}
+            >
+              🗂️ Vista Kanban
+            </button>
           </div>
 
-          <TaskList
-            tasks={sortedAndFilteredTasks}
-            onToggleCompletion={toggleTaskCompletion}
-            onDeleteTask={deleteTask}
-            onUpdateTask={updateTask}
-          />
+          {viewMode === "list" ? (
+            <>
+              <div className="filter-sort-container">
+                <PriorityFilter activePriority={activePriorityFilter} onPriorityChange={setActivePriorityFilter} />
+                <SortSelector
+                  sortBy={sortBy}
+                  onSortChange={setSortBy}
+                  searchTerm={searchTerm}
+                  onSearchChange={setSearchTerm}
+                />
+              </div>
+              <TaskList
+                tasks={sortedAndFilteredTasks}
+                onToggleCompletion={toggleTaskCompletion}
+                onDeleteTask={deleteTask}
+                onUpdateTask={updateTask}
+              />
+            </>
+          ) : (
+            <KanbanBoard
+              tasks={tasks}
+              onMove={moveTaskToStatus}
+              onDeleteTask={deleteTask}
+            />
+          )}
         </main>
 
         <footer>
